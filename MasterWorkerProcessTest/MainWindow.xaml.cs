@@ -41,7 +41,7 @@ namespace SecurityCamp
             
             await CommunicateAsync();
             
-            child.CloseMainWindow();
+            if(!child.HasExited) child.CloseMainWindow();
             child.Dispose();
         }
 
@@ -59,7 +59,7 @@ namespace SecurityCamp
                     //StreamString ss = new StreamString(pipeServer);
                     await pipeServer.WriteStringAsync("I am the one true server!");//これいる？コマンドライン引数に適当な数値とか入れて名前変えたほうが良さげ
 
-                    await pipeServer.WriteStringAsync("hello");
+                    await pipeServer.WriteStringAsync(textBox.Text.Length == 0 ? "hoge" : textBox.Text);
                     var message = await pipeServer.ReadStringAsync();
                     //var message = pipeServer.ReadString();
                     MessageBox.Show(message);
