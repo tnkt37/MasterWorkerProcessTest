@@ -21,6 +21,8 @@ namespace SecurityCamp
                     TokenImpersonationLevel.Impersonation))
             {
 
+                Thread.Sleep(50000);
+
                 Console.WriteLine("Connecting to server...\n");
                 pipeClient.Connect();
                 //StreamString ss = new StreamString(pipeClient);
@@ -29,10 +31,10 @@ namespace SecurityCamp
                 {
                     var message = pipeClient.ReadString();
                     var response = message.Substring(1, message.Length - 1);
-                    
+
                     //Console.WriteLine("thread sleep");
                     //Thread.Sleep(3000);
-                    
+
                     pipeClient.WriteString(response);
                 }
                 else

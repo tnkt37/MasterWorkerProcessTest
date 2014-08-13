@@ -36,12 +36,24 @@ namespace SecurityCamp
 
         private async void runWorkerProcessButton_Click(object sender, RoutedEventArgs e)
         {
-            var path = @"..\..\..\WorkerProcess\bin\Debug\WorkerProcess.exe";
-            var child = Process.Start(path, "spawnclient");
-            
+            //var path = @"..\..\..\WorkerProcess\bin\Debug\WorkerProcess.exe";
+            var path = @"..\..\..\WorkerProcessTest\bin\Debug\WorkerProcessTest.exe";
+
+            Process child = null;
+            //作れない時の例外が
+            try
+            {
+                child = Process.Start(path, "spawnclient");
+            }
+            catch (Exception exc)
+            {
+                Debug.WriteLine(exc.Message);
+                stateLabel.Content = exc.Message;
+            }
             await CommunicateAsync();
-            
-            if(!child.HasExited) child.CloseMainWindow();
+
+            if (child == null) return;
+            if (!child.HasExited) child.CloseMainWindow();
             child.Dispose();
         }
 
@@ -50,7 +62,17 @@ namespace SecurityCamp
             using (NamedPipeServerStream pipeServer = new NamedPipeServerStream("testpipe", PipeDirection.InOut))
             {
                 // Wait for a client to connect
-                pipeServer.WaitForConnection();
+                try
+                {
+                    await pipeServer.WaitForConnectionAsync().Timeout(TimeSpan.FromSeconds(3));
+                }
+                catch
+                {
+                    Debug.WriteLine("進捗ダメです");
+                    stateLabel.Content = "進捗ダメです";
+                    return;
+                }
+
                 try
                 {
                     // Read the request from the client. Once the client has
@@ -62,7 +84,7 @@ namespace SecurityCamp
                     await pipeServer.WriteStringAsync(textBox.Text.Length == 0 ? "hoge" : textBox.Text);
                     var message = await pipeServer.ReadStringAsync();
                     //var message = pipeServer.ReadString();
-                    MessageBox.Show(message);
+                    stateLabel.Content = message;
                 }
                 // Catch the IOException that is raised if the pipe is broken
                 // or disconnected.

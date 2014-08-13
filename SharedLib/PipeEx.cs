@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.IO.Pipes;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -11,6 +12,11 @@ namespace SecurityCamp
     //TODO 非同期対応するべきだと思います（正論
     public static class StreamStringEx
     {
+        public static async Task WaitForConnectionAsync(this NamedPipeServerStream pipeServer)
+        {
+            await Task.Run(() => pipeServer.WaitForConnection()).ConfigureAwait(false);
+        }
+
         static UnicodeEncoding streamEncoding = new UnicodeEncoding();
         public static string ReadString(this Stream ioStream)
         {
@@ -46,6 +52,24 @@ namespace SecurityCamp
         public static async Task<int> WriteStringAsync(this Stream ioStream, string outString)
         {
             return await Task.Run(() => WriteString(ioStream, outString)).ConfigureAwait(false);
+        }
+    }
+
+    public static class TaskTimeOut
+    {
+        public static async Task Timeout(this Task task, TimeSpan timeout)
+        {
+            var delay = Task.Delay(timeout);
+            if (await Task.WhenAny(task, delay) == delay)
+            {
+                throw new TimeoutException();
+            }
+        }
+
+        public static async Task<T> Timeout<T>(this Task<T> task, TimeSpan timeout)
+        {
+            await ((Task)task).Timeout(timeout);
+            return await task;
         }
     }
 }
