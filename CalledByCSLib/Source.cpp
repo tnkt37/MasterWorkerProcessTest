@@ -4,7 +4,7 @@
 #include <windows.h>
 #include <Sddl.h>
 
-//#include "Python.h"
+#include "Python.h"
 
 using std::string;
 

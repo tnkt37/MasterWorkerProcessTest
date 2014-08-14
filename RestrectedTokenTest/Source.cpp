@@ -10,6 +10,7 @@
 #endif
 
 using namespace std;
+using std::getline;
 
 extern "C"{
 
@@ -25,6 +26,25 @@ BOOL ConvertSidToName(PSID pSid, LPTSTR lpszName, DWORD dwSizeName)
 	return LookupAccountSid(nullptr, pSid, lpszName, &dwSizeName, szDomainName, &dwSizeDomain, &sidName);
 }
 
+void OutputPirivileges(PTOKEN_PRIVILEGES pTokenPrivilegest)
+{
+	TCHAR szProgramName[256];
+	TCHAR szDisplayName[256];
+	TCHAR szBuf[1024];
+	for (int i = 0; i < pTokenPrivilegest->PrivilegeCount; i++) {
+		auto bEnabled = pTokenPrivilegest->Privileges[i].Attributes & SE_PRIVILEGE_ENABLED;
+		DWORD dwLength = sizeof(szProgramName) / sizeof(TCHAR);
+		DWORD dwLanguageId;
+		LookupPrivilegeName(NULL, &pTokenPrivilegest->Privileges[i].Luid, szProgramName, &dwLength);
+
+		dwLength = sizeof(szDisplayName) / sizeof(TCHAR);
+		LookupPrivilegeDisplayName(NULL, szProgramName, szDisplayName, &dwLength, &dwLanguageId);
+
+		wsprintf(szBuf, TEXT("%s %s %s "), bEnabled ? TEXT("○") : TEXT("×"), szProgramName, szDisplayName);
+		cout << szBuf << endl;
+	}
+}
+
 int main(void)
 {
 	HANDLE hToken;
@@ -33,11 +53,11 @@ int main(void)
 	DWORD dwLength;
 	PTOKEN_USER pTokenUser;
 
+
 	if (!OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY | TOKEN_DUPLICATE, &hToken)) {
 		MessageBox(nullptr, TEXT("トークンのハンドルの取得に失敗しました。"), nullptr, MB_ICONWARNING);
 		return 0;
 	}
-
 
 	//特権の制限test
 	DWORD dwpLengtht;
@@ -45,9 +65,12 @@ int main(void)
 	auto pTokenPrivilegest = (PTOKEN_PRIVILEGES)LocalAlloc(LPTR, dwpLengtht);
 	GetTokenInformation(hToken, TokenPrivileges, pTokenPrivilegest, dwpLengtht, &dwpLengtht);
 
+	OutputPirivileges(pTokenPrivilegest);
+
 
 	GetTokenInformation(hToken, TokenUser, nullptr, 0, &dwLength);
 	pTokenUser = (PTOKEN_USER)LocalAlloc(LPTR, dwLength);
+
 	GetTokenInformation(hToken, TokenUser, pTokenUser, dwLength, &dwLength);
 
 	if (!CreateRestrictedToken(hToken, DISABLE_MAX_PRIVILEGE, 1, &pTokenUser->User, 0, nullptr, 0, nullptr, &hTokenRestricted)) {
@@ -75,12 +98,13 @@ int main(void)
 	GetTokenInformation(hTokenRestricted, TokenGroups, pTokenGroups, dwgLength, &dwgLength);
 	HANDLE hTokenRestricted2;
 
-	if (!CreateRestrictedToken(hTokenRestricted, DISABLE_MAX_PRIVILEGE, pTokenGroups->GroupCount, pTokenGroups->Groups, 0, nullptr, 0, nullptr, &hTokenRestricted2)) {
+	if (!CreateRestrictedToken(hTokenRestricted, DISABLE_MAX_PRIVILEGE, pTokenGroups->GroupCount / 2, pTokenGroups->Groups, 0, nullptr, 0, nullptr, &hTokenRestricted2)) {
 		auto error = GetLastError();
 		MessageBox(nullptr, TEXT("制限付きトークンの作成に失敗しました。"), nullptr, MB_ICONWARNING);
 		CloseHandle(hToken);
 		return 0;
 	}
+	hTokenRestricted2 = hTokenRestricted;
 
 	//特権の制限
 	//全部やってしまってるのでホワイトリストで制限を回避するように
@@ -89,7 +113,9 @@ int main(void)
 	auto pTokenPrivileges = (PTOKEN_PRIVILEGES)LocalAlloc(LPTR, dwpLength);
 	GetTokenInformation(hTokenRestricted2, TokenPrivileges, pTokenPrivileges, dwpLength, &dwpLength);
 	HANDLE hTokenRestricted3;
-
+	OutputPirivileges(pTokenPrivileges);
+	string dummmmm;
+	getline(cin, dummmmm);
 	if (!CreateRestrictedToken(hTokenRestricted2, DISABLE_MAX_PRIVILEGE, 0, nullptr, pTokenPrivileges->PrivilegeCount, pTokenPrivileges->Privileges, 0, nullptr, &hTokenRestricted3)) {
 		auto error = GetLastError();
 		MessageBox(nullptr, TEXT("制限付きトークンの作成に失敗しました。"), nullptr, MB_ICONWARNING);
@@ -97,13 +123,15 @@ int main(void)
 		return 0;
 	}
 
+	ImpersonateLoggedOnUser(hTokenRestricted3);
+
+	WinExec("notepad", SW_SHOW);
 #ifdef UP
 	cout << "init python" << endl;
 	string dums;
 	getline(cin, dums);
 	Py_Initialize();
 
-	ImpersonateLoggedOnUser(hTokenRestricted3);
 
 	cout << "run python" << endl;
 	PyRun_SimpleString("import json\n"
@@ -131,7 +159,6 @@ int main(void)
 		CloseHandle(hToken);
 		return 0;
 	}
-
 
 	RevertToSelf();
 
