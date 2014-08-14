@@ -3,7 +3,14 @@
 #include <windows.h>
 #include <Sddl.h>
 
+#include "Python.h"
+
 using namespace std;
+
+extern "C"{
+
+}
+
 
 BOOL ConvertSidToName(PSID pSid, LPTSTR lpszName, DWORD dwSizeName)
 {
@@ -57,6 +64,7 @@ int main(void)
 	}
 
 	//特権の制限
+	//全部やってしまってるのでホワイトリストで制限を回避するように
 	DWORD dwpLength;
 	GetTokenInformation(hTokenRestricted2, TokenPrivileges, nullptr, 0, &dwpLength);
 	auto pTokenPrivileges = (PTOKEN_PRIVILEGES)LocalAlloc(LPTR, dwpLength);
@@ -71,10 +79,23 @@ int main(void)
 	}
 
 
+	cout << "init python" << endl;
+	string dums;
+	getline(cin, dums);
+	Py_Initialize();
 
 	ImpersonateLoggedOnUser(hTokenRestricted3);
 	char str[] = "hogehoge";
 
+	cout << "run python" << endl;
+	PyRun_SimpleString("import json\n"
+		"print 'imported json'\n");
+	//PyRun_SimpleString("print 'hogehoge'");
+	getline(cin, dums);
+	cout << "python executed" << endl;
+	Py_Finalize();
+	cout << "python finalized" << endl;
+	getline(cin, dums);
 	stringstream ss;
 	ss << "C://CPP//" << "sample" << 0 << ".txt";
 	string path = ss.str();
@@ -91,12 +112,12 @@ int main(void)
 		return 0;
 	}
 
-	CloseHandle(hTokenRestricted);
-	CloseHandle(hFile);
 
 	RevertToSelf();
 
 
+	CloseHandle(hTokenRestricted);
+	CloseHandle(hFile);
 	CloseHandle(hToken);
 	LocalFree(pTokenUser);
 	return 0;

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO.Pipes;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Security.Principal;
 using System.Text;
 using System.Threading;
@@ -11,9 +12,23 @@ namespace SecurityCamp
 {
     class Program
     {
+        [DllImport(@"C:\Users\tnkt\Documents\Visual Studio 2013\Projects\MasterWorkerProcessTest\Release\CalledByCSLibTest.dll", CharSet = CharSet.Ansi)]
+        static extern void CoutEndl(string str);
+
+        [DllImport(@"C:\Users\tnkt\Documents\Visual Studio 2013\Projects\MasterWorkerProcessTest\Release\CalledByCSLibTest.dll")]
+        static extern int RestTest();
+
         static void Main(string[] args)
         {
             Console.WriteLine("hello client");
+            Console.WriteLine("print dll message");
+
+            CoutEndl("ハロー！きんいろモザイク");
+            CoutEndl("Hello! KIN-MOZA");
+            RestTest();
+
+            Console.WriteLine("dll executed");
+            Console.ReadLine();
 
             using (NamedPipeClientStream pipeClient =
                 new NamedPipeClientStream(".", "testpipe",

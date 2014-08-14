@@ -85,6 +85,7 @@ namespace SecurityCamp
                     var message = await pipeServer.ReadStringAsync();
                     //var message = pipeServer.ReadString();
                     stateLabel.Content = message;
+                    Debug.WriteLine(message);
                 }
                 // Catch the IOException that is raised if the pipe is broken
                 // or disconnected.

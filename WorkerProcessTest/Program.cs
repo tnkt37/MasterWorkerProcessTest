@@ -13,6 +13,7 @@ namespace SecurityCamp
     {
         static void Main(string[] args)
         {
+
             Console.WriteLine("hello client");
 
             using (NamedPipeClientStream pipeClient =
