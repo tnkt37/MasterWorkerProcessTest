@@ -45,87 +45,32 @@ void OutputPirivileges(PTOKEN_PRIVILEGES pTokenPrivilegest)
 	}
 }
 
-int main(void)
+void waitEnter()
 {
-	HANDLE hToken;
-	HANDLE hTokenRestricted = nullptr;
-	HANDLE hFile;
-	DWORD dwLength;
-	PTOKEN_USER pTokenUser;
-
-
-	if (!OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY | TOKEN_DUPLICATE, &hToken)) {
-		MessageBox(nullptr, TEXT("トークンのハンドルの取得に失敗しました。"), nullptr, MB_ICONWARNING);
-		return 0;
-	}
-
-	//特権の制限test
-	DWORD dwpLengtht;
-	GetTokenInformation(hToken, TokenPrivileges, nullptr, 0, &dwpLengtht);
-	auto pTokenPrivilegest = (PTOKEN_PRIVILEGES)LocalAlloc(LPTR, dwpLengtht);
-	GetTokenInformation(hToken, TokenPrivileges, pTokenPrivilegest, dwpLengtht, &dwpLengtht);
-
-	OutputPirivileges(pTokenPrivilegest);
-
-
-	GetTokenInformation(hToken, TokenUser, nullptr, 0, &dwLength);
-	pTokenUser = (PTOKEN_USER)LocalAlloc(LPTR, dwLength);
-
-	GetTokenInformation(hToken, TokenUser, pTokenUser, dwLength, &dwLength);
-
-	if (!CreateRestrictedToken(hToken, DISABLE_MAX_PRIVILEGE, 1, &pTokenUser->User, 0, nullptr, 0, nullptr, &hTokenRestricted)) {
-		auto error = GetLastError();
-		MessageBox(nullptr, TEXT("制限付きトークンの作成に失敗しました。"), nullptr, MB_ICONWARNING);
-		CloseHandle(hToken);
-		return 0;
-	}
-
-	LPTSTR StringSid;
-	ConvertSidToStringSid(pTokenUser->User.Sid, &StringSid);
-	cout << StringSid << endl;
-
-
-	//特権の制限test
-	DWORD dwpLengthtt;
-	GetTokenInformation(hTokenRestricted, TokenPrivileges, nullptr, 0, &dwpLengthtt);
-	auto pTokenPrivilegestt = (PTOKEN_PRIVILEGES)LocalAlloc(LPTR, dwpLengthtt);
-	GetTokenInformation(hTokenRestricted, TokenPrivileges, pTokenPrivilegestt, dwpLengthtt, &dwpLengthtt);
-
-
-	DWORD dwgLength;
-	GetTokenInformation(hToken, TokenGroups, nullptr, 0, &dwgLength);
-	auto pTokenGroups = (PTOKEN_GROUPS)LocalAlloc(LPTR, dwgLength);
-	GetTokenInformation(hTokenRestricted, TokenGroups, pTokenGroups, dwgLength, &dwgLength);
-	HANDLE hTokenRestricted2;
-
-	if (!CreateRestrictedToken(hTokenRestricted, DISABLE_MAX_PRIVILEGE, pTokenGroups->GroupCount / 2, pTokenGroups->Groups, 0, nullptr, 0, nullptr, &hTokenRestricted2)) {
-		auto error = GetLastError();
-		MessageBox(nullptr, TEXT("制限付きトークンの作成に失敗しました。"), nullptr, MB_ICONWARNING);
-		CloseHandle(hToken);
-		return 0;
-	}
-	hTokenRestricted2 = hTokenRestricted;
-
-	//特権の制限
-	//全部やってしまってるのでホワイトリストで制限を回避するように
-	DWORD dwpLength;
-	GetTokenInformation(hTokenRestricted2, TokenPrivileges, nullptr, 0, &dwpLength);
-	auto pTokenPrivileges = (PTOKEN_PRIVILEGES)LocalAlloc(LPTR, dwpLength);
-	GetTokenInformation(hTokenRestricted2, TokenPrivileges, pTokenPrivileges, dwpLength, &dwpLength);
-	HANDLE hTokenRestricted3;
-	OutputPirivileges(pTokenPrivileges);
 	string dummmmm;
 	getline(cin, dummmmm);
-	if (!CreateRestrictedToken(hTokenRestricted2, DISABLE_MAX_PRIVILEGE, 0, nullptr, pTokenPrivileges->PrivilegeCount, pTokenPrivileges->Privileges, 0, nullptr, &hTokenRestricted3)) {
-		auto error = GetLastError();
-		MessageBox(nullptr, TEXT("制限付きトークンの作成に失敗しました。"), nullptr, MB_ICONWARNING);
-		CloseHandle(hToken);
-		return 0;
+}
+
+void createFileTest()
+{
+	char str[] = "hogehoge";
+	stringstream ss;
+	ss << "C://CPP//" << "sample" << 0 << ".txt";
+	string path = ss.str();
+	HANDLE hFile = CreateFile(TEXT(path.c_str()), GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
+	DWORD dwWriteSize;
+	auto x = WriteFile(hFile, str, lstrlen(str), &dwWriteSize, nullptr);
+	if (hFile == INVALID_HANDLE_VALUE) {
+		if (GetLastError() == ERROR_ACCESS_DENIED)
+			MessageBox(nullptr, TEXT("アクセスが拒否されました。"), nullptr, MB_ICONWARNING);
+		else
+			MessageBox(nullptr, TEXT("ファイルの作成に失敗しました。"), nullptr, MB_ICONWARNING);
 	}
+	CloseHandle(hFile);
+}
 
-	ImpersonateLoggedOnUser(hTokenRestricted3);
-
-	WinExec("notepad", SW_SHOW);
+void exePythonTest()
+{
 #ifdef UP
 	cout << "init python" << endl;
 	string dums;
@@ -143,29 +88,107 @@ int main(void)
 	cout << "python finalized" << endl;
 	getline(cin, dums);
 #endif
-	char str[] = "hogehoge";
-	stringstream ss;
-	ss << "C://CPP//" << "sample" << 0 << ".txt";
-	string path = ss.str();
-	hFile = CreateFile(TEXT(path.c_str()), GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
-	DWORD dwWriteSize;
-	auto x = WriteFile(hFile, str, lstrlen(str), &dwWriteSize, nullptr);
-	if (hFile == INVALID_HANDLE_VALUE) {
-		if (GetLastError() == ERROR_ACCESS_DENIED)
-			MessageBox(nullptr, TEXT("アクセスが拒否されました。"), nullptr, MB_ICONWARNING);
-		else
-			MessageBox(nullptr, TEXT("ファイルの作成に失敗しました。"), nullptr, MB_ICONWARNING);
-		CloseHandle(hTokenRestricted);
-		CloseHandle(hToken);
-		return 0;
+}
+
+HANDLE openCurrentProcessToken()
+{
+	HANDLE hToken;
+	if (!OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY | TOKEN_DUPLICATE, &hToken)) {
+		auto error = GetLastError();
+		const std::exception ex("Failed to OprnProcessToken");
+		throw &ex;
 	}
+	return hToken;
+}
+
+template<typename T>
+T getTokenInformation(HANDLE hPreToken, TOKEN_INFORMATION_CLASS tokenInfo)
+{
+	DWORD tokenBytes;
+	GetTokenInformation(hPreToken, tokenInfo, nullptr, 0, &tokenBytes);
+	auto ptokenT = (T)LocalAlloc(LPTR, tokenBytes);
+	GetTokenInformation(hPreToken, tokenInfo, ptokenT, tokenBytes, &tokenBytes);
+
+	return ptokenT;
+
+}
+
+HANDLE createRestrictedToken(HANDLE hPreToken, DWORD flags, DWORD disableSidCount, PSID_AND_ATTRIBUTES sidsToDisable, DWORD deletePrivilegeCount, PLUID_AND_ATTRIBUTES privilegesToDelete)
+{
+	HANDLE hNextToken;
+	if (!CreateRestrictedToken(hPreToken, flags, disableSidCount, sidsToDisable, deletePrivilegeCount, privilegesToDelete, 0, nullptr, &hNextToken))
+	{
+		auto error = GetLastError();
+		const std::exception ex("Failed to create restricted token");
+		throw &ex;
+	}
+
+	return hNextToken;
+}
+
+HANDLE createRestrictedToken(HANDLE hPreToken, DWORD flags, DWORD disableSidCount, PSID_AND_ATTRIBUTES sidsToDisable)
+{
+	return createRestrictedToken(hPreToken, flags, disableSidCount, sidsToDisable, 0, nullptr);
+}
+
+HANDLE createRestrictedToken(HANDLE hPreToken, DWORD flags, DWORD deletePrivilegeCount, PLUID_AND_ATTRIBUTES privilegeToDelete)
+{
+	return createRestrictedToken(hPreToken, flags, 0, nullptr, deletePrivilegeCount, privilegeToDelete);
+}
+
+int main(void)
+{
+	//始めのトークンを取得
+	auto hInitialToken = openCurrentProcessToken();
+
+	//特権の制限test
+	auto pTokenPrivilegesTest = getTokenInformation<PTOKEN_PRIVILEGES>(hInitialToken, TokenPrivileges);
+	OutputPirivileges(pTokenPrivilegesTest);
+
+	//ユーザーの制限
+	auto pTokenUser = getTokenInformation<PTOKEN_USER>(hInitialToken, TokenUser);
+	auto hTokenUserRestricted = createRestrictedToken(hInitialToken, DISABLE_MAX_PRIVILEGE, 1, &(pTokenUser->User));
+	
+	//TokenUserのSIDを取得
+	LPTSTR StringSid;
+	ConvertSidToStringSid(pTokenUser->User.Sid, &StringSid);
+	cout << StringSid << endl;
+
+
+	////特権の制限test
+	//auto pTokenPrivilegesTest2 = getTokenInformation<PTOKEN_PRIVILEGES>(hInitialToken, TokenPrivileges);
+	//OutputPirivileges(pTokenPrivilegesTest2);
+
+
+	//グループの制限
+	auto pTokenGroups = getTokenInformation<PTOKEN_GROUPS>(hTokenUserRestricted, TokenGroups);
+	auto hTokenGroupsRestricted = createRestrictedToken(hTokenUserRestricted, DISABLE_MAX_PRIVILEGE, pTokenGroups->GroupCount, pTokenGroups->Groups);
+
+	//hTokenRestricted2 = hTokenRestricted;
+
+	//特権の制限
+	//全部やってしまってるのでホワイトリストで制限を回避するように
+	auto pTokenPrivileges = getTokenInformation<PTOKEN_PRIVILEGES>(hTokenGroupsRestricted, TokenPrivileges);
+	auto hTokenPrivilegesRestricted = createRestrictedToken(hTokenGroupsRestricted, DISABLE_MAX_PRIVILEGE, pTokenPrivileges->PrivilegeCount, pTokenPrivileges->Privileges);
+
+	cout << "last privileges" << endl;
+	OutputPirivileges(pTokenPrivileges);
+
+	ImpersonateLoggedOnUser(hTokenPrivilegesRestricted);
+
+	WinExec("notepad", SW_SHOW);
+
+	waitEnter();
+
+	exePythonTest();
+	createFileTest();
 
 	RevertToSelf();
 
-
-	CloseHandle(hTokenRestricted);
-	CloseHandle(hFile);
-	CloseHandle(hToken);
-	LocalFree(pTokenUser);
+	//解放
+	//CloseHandle(hTokenRestricted);
+	//CloseHandle(hFile);
+	//CloseHandle(hToken);
+	//LocalFree(pTokenUser);
 	return 0;
 }
