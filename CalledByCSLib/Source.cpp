@@ -4,7 +4,7 @@
 #include <windows.h>
 #include <Sddl.h>
 
-#include "Python.h"
+//#include "Python.h"
 
 using std::string;
 
@@ -18,7 +18,7 @@ extern "C"
 	}
 
 
-	__declspec(dllexport) int RestTest()
+	//__declspec(dllexport) int RestTest()
 	{
 		HANDLE hToken;
 		HANDLE hTokenRestricted = nullptr;
@@ -117,6 +117,8 @@ extern "C"
 		CloseHandle(hFile);
 		CloseHandle(hToken);
 		LocalFree(pTokenUser);
+
+		//ハンドルの解放が雑すぎてメモリリークしてる
 		return 0;
 	}
 }

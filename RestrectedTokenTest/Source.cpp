@@ -3,7 +3,11 @@
 #include <windows.h>
 #include <Sddl.h>
 
+//#define UP
+
+#ifdef UP
 #include "Python.h"
+#endif
 
 using namespace std;
 
@@ -34,6 +38,14 @@ int main(void)
 		return 0;
 	}
 
+
+	//“ÁŒ ‚Ì§ŒÀtest
+	DWORD dwpLengtht;
+	GetTokenInformation(hToken, TokenPrivileges, nullptr, 0, &dwpLengtht);
+	auto pTokenPrivilegest = (PTOKEN_PRIVILEGES)LocalAlloc(LPTR, dwpLengtht);
+	GetTokenInformation(hToken, TokenPrivileges, pTokenPrivilegest, dwpLengtht, &dwpLengtht);
+
+
 	GetTokenInformation(hToken, TokenUser, nullptr, 0, &dwLength);
 	pTokenUser = (PTOKEN_USER)LocalAlloc(LPTR, dwLength);
 	GetTokenInformation(hToken, TokenUser, pTokenUser, dwLength, &dwLength);
@@ -48,6 +60,13 @@ int main(void)
 	LPTSTR StringSid;
 	ConvertSidToStringSid(pTokenUser->User.Sid, &StringSid);
 	cout << StringSid << endl;
+
+
+	//“ÁŒ ‚Ì§ŒÀtest
+	DWORD dwpLengthtt;
+	GetTokenInformation(hTokenRestricted, TokenPrivileges, nullptr, 0, &dwpLengthtt);
+	auto pTokenPrivilegestt = (PTOKEN_PRIVILEGES)LocalAlloc(LPTR, dwpLengthtt);
+	GetTokenInformation(hTokenRestricted, TokenPrivileges, pTokenPrivilegestt, dwpLengthtt, &dwpLengthtt);
 
 
 	DWORD dwgLength;
@@ -78,14 +97,13 @@ int main(void)
 		return 0;
 	}
 
-
+#ifdef UP
 	cout << "init python" << endl;
 	string dums;
 	getline(cin, dums);
 	Py_Initialize();
 
 	ImpersonateLoggedOnUser(hTokenRestricted3);
-	char str[] = "hogehoge";
 
 	cout << "run python" << endl;
 	PyRun_SimpleString("import json\n"
@@ -96,6 +114,8 @@ int main(void)
 	Py_Finalize();
 	cout << "python finalized" << endl;
 	getline(cin, dums);
+#endif
+	char str[] = "hogehoge";
 	stringstream ss;
 	ss << "C://CPP//" << "sample" << 0 << ".txt";
 	string path = ss.str();
